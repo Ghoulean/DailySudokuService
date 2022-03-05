@@ -1,0 +1,131 @@
+plugins {
+    id 'java-library'
+    id 'jacoco'
+    id 'checkstyle'
+    // Pretty print test output
+    id 'com.adarshr.test-logger' version '3.1.0'
+    id 'maven-publish'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/Ghoulean/Sudoku")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+            password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+        }
+    }
+}
+
+dependencies {
+    // Apache Commons Lang
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    // AWS SDK
+    implementation platform('software.amazon.awssdk:bom:2.17.76')
+    implementation platform('com.amazonaws:aws-java-sdk-bom:1.12.167')
+    implementation 'software.amazon.awssdk:lambda'
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.1'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.10.0'
+    implementation 'com.amazonaws:aws-java-sdk-dynamodb:1.12.167'
+    runtimeOnly 'com.amazonaws:aws-lambda-java-log4j2:1.5.1'
+    // lombok
+	compileOnly 'org.projectlombok:lombok:1.18.22'
+	annotationProcessor 'org.projectlombok:lombok:1.18.22'
+	testCompileOnly 'org.projectlombok:lombok:1.18.22'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
+    // Dagger 2
+    implementation 'com.google.dagger:dagger:2.40'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.40'
+    // JUnit
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.0'
+    // Sudoku (Ghoulean)
+    implementation 'com.ghoulean:sudoku:0.1.7'
+}
+
+version = '0.1.0'
+
+tasks.named('jar') {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                   'Implementation-Version': project.version,
+                   'Main-Class': 'com.ghoulean.dailysudokuservice.lambda.Lambda')
+    }
+}
+
+task fatJar(type: Jar) {
+  manifest.from jar.manifest
+  classifier = 'all'
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  from {
+    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+  } {
+    exclude "META-INF/*.SF"
+    exclude "META-INF/*.DSA"
+    exclude "META-INF/*.RSA"
+  }
+  with jar
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtimeClasspath
+    }
+}
+
+artifacts {
+    archives fatJar
+    archives buildZip
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+jacoco {
+    toolVersion = "0.8.7"
+    reportsDirectory = layout.buildDirectory.dir('jacoco')
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn test
+    enabled = false
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
+    }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    violationRules {
+        failOnViolation = true
+        rule {
+            element = 'CLASS'
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+checkstyle {
+    toolVersion '9.2.1'
+    ignoreFailures = false
+    maxErrors = 10
+    maxWarnings = 10
+}
+
+tasks.named("check") {
+    dependsOn jacocoTestCoverageVerification
+}
