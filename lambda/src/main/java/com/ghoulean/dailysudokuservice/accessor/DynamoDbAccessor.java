@@ -3,13 +3,9 @@ package com.ghoulean.dailysudokuservice.accessor;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.text.Format;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Date;
 
 import javax.inject.Singleton;
 

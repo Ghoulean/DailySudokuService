@@ -1,8 +1,9 @@
 package com.ghoulean.dailysudokuservice.lambda;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -13,7 +14,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.ghoulean.dailysudokuservice.accessor.DynamoDbAccessor;
 import com.ghoulean.dailysudokuservice.constants.Environment;
 import com.ghoulean.sudoku.Puzzle;
@@ -21,7 +22,7 @@ import com.ghoulean.sudoku.generators.Standard3x3Generator;
 
 import lombok.NonNull;
 
-public final class Lambda implements RequestHandler<Integer, Void> {
+public final class Lambda implements RequestStreamHandler {
 
     private @NonNull final Standard3x3Generator standard3x3Generator;
     private @NonNull final Calendar calendar;
@@ -34,7 +35,9 @@ public final class Lambda implements RequestHandler<Integer, Void> {
     }
 
     @Override
-    public Void handleRequest(@NonNull final Integer input, @NonNull final Context context) {
+    public void handleRequest(@NonNull final InputStream inputStream,
+                              @NonNull final OutputStream outputStream,
+                              @NonNull final Context context) {
         final LambdaLogger lambdaLogger = context.getLogger();
         lambdaLogger.log("Begin running DailySudokuService");
 
@@ -81,6 +84,6 @@ public final class Lambda implements RequestHandler<Integer, Void> {
         }
 
         lambdaLogger.log("Done running DailySudokuService");
-        return null;
+        return;
     }
 }
